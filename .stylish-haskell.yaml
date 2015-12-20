@@ -1,0 +1,21 @@
+# stylish-haskell configuration file
+# ==================================
+steps:
+  - imports:
+      align: file
+  - language_pragmas:
+      style: vertical
+      remove_redundant: false
+  - records: {}
+  - trailing_whitespace: {}
+
+columns: 90
+
+language_extensions:
+  - NoMonomorphismRestriction
+  - DataKinds
+  - FlexibleContexts
+  - FlexibleInstances
+  - MultiParamTypeClasses
+  - TemplateHaskell
+  - TypeFamilies

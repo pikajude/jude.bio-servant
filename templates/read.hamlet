@@ -1,0 +1,2 @@
+<article .bubble .blog-post>
+  <h1 .post-title>#{essayTitle e}

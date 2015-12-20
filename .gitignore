@@ -1,0 +1,4 @@
+.sass-cache
+dist
+test.db
+static/css
