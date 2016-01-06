@@ -1,0 +1,15 @@
+<article .bubble>
+  <h3 .form-title>Log in
+  <form role=form method=post action=@{loginLink}>
+    <div .row>
+      <div .large-6 .columns>
+        <label>
+          Username
+          <input name=username type=text .form-control>
+
+      <div .large-6 .columns>
+        <label>
+          Password
+          <input name=password type=password .form-control>
+
+    <button type=submit .button .tiny>Try it

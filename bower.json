@@ -1,0 +1,15 @@
+{
+  "name": "jude-web",
+  "version": "0.0.0",
+  "homepage": "https://github.com/pikajude/jude-web",
+  "authors": [
+    "Jude Taylor <me@joelt.io>"
+  ],
+  "description": "joelt.io",
+  "main": "exe/Main.hs",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "foundation": "*"
+  }
+}

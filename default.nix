@@ -1,45 +1,27 @@
-# wrapper around generated.nix to add some build specific stuff
-{ system ? builtins.currentSystem, nixpkgs ? import <nixpkgs> { inherit system; }, compiler ? "default" }:
-
-let
-  inherit (nixpkgs) pkgs;
-  devMode = pkgs.lib.inNixShell;
-
-  haskellPackages_ = if compiler == "default"
-    then pkgs.haskellPackages
-    else pkgs.haskell.packages.${compiler};
-
-  haskellPackages = haskellPackages_.override {
-    overrides = self: super: {
-      aeson = pkgs.haskell.lib.dontCheck self.aeson_0_10_0_0;
-      mkDerivation = expr: super.mkDerivation (expr // {
-        enableLibraryProfiling = devMode;
-      });
-    };
-  };
-
-  sass = pkgs.bundlerEnv {
-    name = "sass";
-    gemset = ./gemset.nix;
-    gemfile = ./Gemfile;
-    lockfile = ./Gemfile.lock;
-  };
-
-  myNodePackages = pkgs.nodePackages.override {
-    generated = ./nixfiles/node-packages-generated.nix;
-    self = myNodePackages;
-  };
-
-  drv = with haskellPackages; pkgs.haskell.lib.overrideCabal (callPackage ./nixfiles/pkg.nix {}) (p: {
-    src = ./.;
-    buildTools = (p.buildTools or []) ++
-      [ sass ] ++
-      pkgs.lib.optionals devMode [
-        cabal-install cabal2nix hlint stylish-haskell
-        pkgs.bundix
-      ];
-  });
-
-in
-
-  if devMode then drv.env else drv
+{ mkDerivation, acid-state, aeson, base, blaze-builder, blaze-html
+, blaze-markup, bytestring, clientsession, containers, cookie
+, either, exceptions, file-embed, filepath, highlighter, http-media
+, http-types, ixset, lens, markdown, monad-control, monad-logger
+, mtl, network-uri, path-pieces, pcre-light, random, safecopy
+, servant, servant-server, shakespeare, stdenv, template-haskell
+, text, time, transformers, uuid, vault, wai, wai-app-static
+, wai-extra, wai-session, warp
+}:
+mkDerivation {
+  pname = "jude-web";
+  version = "0.1.0.0";
+  src = ./.;
+  isLibrary = true;
+  isExecutable = true;
+  libraryHaskellDepends = [
+    acid-state aeson base blaze-builder blaze-html blaze-markup
+    bytestring clientsession containers cookie either exceptions
+    file-embed filepath highlighter http-media http-types ixset lens
+    markdown monad-control monad-logger mtl network-uri path-pieces
+    pcre-light random safecopy servant servant-server shakespeare
+    template-haskell text time transformers uuid vault wai
+    wai-app-static wai-session warp
+  ];
+  executableHaskellDepends = [ base wai-extra warp ];
+  license = stdenv.lib.licenses.mit;
+}

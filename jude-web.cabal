@@ -10,37 +10,65 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     JudeWeb
+  other-modules:       API
+                       HTMLRendering
+                       Models
+                       Pages.Home
+                       Pages.Login
+                       Pages.Single
+                       StaticFiles
+                       Servant.Session
   build-depends:       base <4.9
+                     , acid-state
                      , aeson
+                     , attoparsec
+                     , blaze-builder
+                     , blaze-html
+                     , blaze-markup
                      , bytestring
+                     , bytestring-conversion
+                     , cereal
+                     , clientsession
+                     , containers
+                     , cookie
                      , either
                      , exceptions
+                     , file-embed
                      , filepath
+                     , highlighter
                      , http-media
                      , http-types
+                     , ixset
                      , lens
+                     , markdown
                      , monad-control
                      , monad-logger
                      , mtl
+                     , network-uri
                      , path-pieces
-                     , persistent
-                     , persistent-postgresql
-                     , persistent-sqlite
-                     , persistent-template
-                     , servant
-                     , servant-server
+                     , pcre-light
+                     , random
+                     , safecopy
+                     , servant >= 0.5
+                     , servant-server >= 0.5
+                     , shakespeare
                      , text
                      , template-haskell
                      , time
+                     , transformers
+                     , uuid
+                     , vault
                      , wai
+                     , wai-app-static
+                     , wai-session
+                     , wai-session-clientsession
                      , warp
   hs-source-dirs:      src
   default-language:    Haskell2010
-  default-extensions:  DataKinds
   ghc-options:         -Wall -O0
 
 executable jude-web
-  build-depends:       base, jude-web
+  build-depends:       base, jude-web, wai-extra, warp
   main-is:             Main.hs
   hs-source-dirs:      exe
   default-language:    Haskell2010

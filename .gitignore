@@ -1,4 +1,10 @@
 .sass-cache
 dist
-test.db
 static/css
+bower_components
+*.hi
+*.o
+Setup
+db
+client_session_key.aes
+important-secret

@@ -1,4 +1,0 @@
-$forall e <- es
-  <article>
-    <a href=@{readLink (essaySlug e)}>Go to this one
-    <pre>#{show e}

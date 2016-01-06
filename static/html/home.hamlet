@@ -1,0 +1,11 @@
+<article .bubble .last-bubble>
+  <h5 .site-title>
+    $maybe UserS u <- mu
+      #{u} is logged in
+    $nothing
+      I’m Jude, a functional programmer with a colorful head.
+
+$forall e <- es
+  <article .bubble .preview-bubble>
+    <h3 .post-preview>
+      <a .post-title href=@{readLink (essaySlug e)}>#{essayTitle e}

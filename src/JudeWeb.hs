@@ -1,58 +1,110 @@
+{-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE TypeOperators             #-}
 
 module JudeWeb where
 
-import Control.Monad.Logger
-import Control.Monad.Reader
-import Control.Monad.Trans.Either
-import Data.Proxy
-import Data.Text                  (Text)
-import Database.Persist
-import Database.Persist.Sqlite    hiding (Single)
-import Network.Wai                (Application)
-import Network.Wai.Handler.Warp
-import Servant.API
-import Servant.Server
-import Servant.Utils.StaticFiles
+import           Control.Monad.Reader
+import           Control.Monad.Trans.Except
+import           Data.Acid
+-- import           Data.FileEmbed
+import           Data.IxSet                        hiding (Proxy)
+import           Data.Maybe
+import           Data.Proxy
+import qualified Data.Vault.Lazy                   as V
+import           HTMLRendering
+import           Network.Wai                       (Application, vault)
+import           Network.Wai.Session
+import           Network.Wai.Session.ClientSession
+import           Servant.API
+import           Servant.Server
+import           StaticFiles
+import           System.Environment
+import           Web.ClientSession                 hiding (Key)
+import           Web.Cookie
 
-import API
-import Models
+import           API
+import           Models
 
-server :: ConnectionPool -> Server API
-server pool = enter' serveHome
-         :<|> enter' serveSingle
-         :<|> enter' serveEdit
-         :<|> serveDirectory "static"
+import           Pages.Home
+import           Pages.Login
+import           Pages.Single
+
+server :: AppState -> Server API
+server appState = enter' serveHome
+             :<|> enter' serveSingle
+             :<|> enter' serveEdit
+             :<|> enter' serveNew
+             :<|> (enter' serveLoginGet :<|> enter' serveLoginPost)
+             :<|> serveStatic
     where
-        enter' = enter (runReaderTNat pool)
+        enter' = enter (runReaderTNat appState)
 
 serveStatic :: Application
-serveStatic = serveDirectory "static"
+serveStatic = serveFile
 
 serveHome :: AppM Homepage
 serveHome = do
-    es <- runDB $ selectList [] [Desc EssayCreatedAt]
-    return $ Homepage es
+    mu <- fetch "user"
+    set "user" $ UserS "pikajude"
+    es <- runDB GetAll
+    let h = Homepage es
+    return $ Rendered h (renderHome h mu)
 
-serveSingle :: Text -> AppM Single
+serveSingle :: EssaySlug -> AppM Single
 serveSingle sl = do
-    e <- runDB $ getBy (UniqueEssay sl)
+    e <- runDB $ SelectSlug sl
     case e of
-        Nothing -> lift $ left err404
-        Just x -> return $ Single x
+        Nothing -> lift $ throwE err404
+        Just x -> do
+            let s = Single x
+                rendered = Rendered s (renderSingle s Nothing)
+            return rendered
 
-serveEdit :: EssayId -> Essay -> AppM Single
-serveEdit k essay = do
-    e <- runDB $ get k
-    case e of
-        Nothing -> lift $ left err404
-        Just _ -> error $ show essay
+serveEdit :: EssaySlug -> AppM Single :<|> (Essay -> AppM Single)
+serveEdit sl = serveEditGet :<|> serveEditPatch where
+    serveEditGet = do
+        e <- runDB $ SelectSlug sl
+        case e of
+            Nothing -> lift $ throwE err404
+            Just ese -> error $ show ese
+    serveEditPatch ese = error (show ese)
 
-main :: IO ()
-main = do
-    pool <- runStdoutLoggingT $ createSqlitePool "test.db" 1
-    runSqlPool (runMigration migrateAll) pool
+serveNew :: Essay -> AppM Single
+serveNew essay = do
+    execDB $ Insert essay
+    lift $ throwE (err301 { errHeaders = [("Location", "/")] })
 
-    run 8081 $ serve (Proxy :: Proxy API) $ server pool
+serveLoginGet :: AppM LoginPage
+serveLoginGet = return $ Rendered undefined renderLogin
+
+serveLoginPost :: User -> AppM ()
+serveLoginPost _user = do
+    _key <- asks appKey
+    return undefined
+    {- if password user == $(embedStringFile "important-secret")
+        then do
+            nc <- newCookie key (SessionStore (Just (username user)) Nothing)
+            lift $ throwE (err301
+                 { errHeaders = [ ("Location", "/")
+                                , ("Set-Cookie", nc)
+                                ] })
+        else do
+            nc <- newCookie key (SessionStore Nothing (Just "Invalid password"))
+            lift $ throwE (err301
+                 { errHeaders = [ ("Location", "/in")
+                                , ("Set-Cookie", nc)
+                                ] }) -}
+
+serveApp :: IO Application
+serveApp = do
+    stateDir <- fromMaybe "db" <$> lookupEnv "STATE_DIR"
+    database <- openLocalStateFrom stateDir (Database empty)
+    k <- getDefaultKey
+    vk <- V.newKey
+    return $ withSession (clientsessionStore k) "_SESSION" (def { setCookiePath = Just "/" }) vk
+        $ \ req -> serve (Proxy :: Proxy API)
+            (server (AppState k database (V.lookup vk $ vault req)))
+            req
