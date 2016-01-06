@@ -84,12 +84,7 @@ deriveJSON defaultOptions { fieldLabelModifier = over _head toLower . drop 5
                           } ''Essay
 
 instance Indexable Essay where
-    empty = ixSet
-        [ ixGen (Proxy :: Proxy EssayTitle)
-        , ixGen (Proxy :: Proxy EssaySlug)
-        , ixGen (Proxy :: Proxy EssayContent)
-        , ixGen (Proxy :: Proxy EssayCreatedAt)
-        ]
+    empty = ixSet [ ixGen (Proxy :: Proxy EssaySlug) ]
 
 -- | User
 data User = User { username :: Text, password :: Text } deriving Show
