@@ -10,26 +10,18 @@ module API where
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Except
 import           Data.Aeson
-import           Data.ByteString.Conversion.To
-import           Data.Text                     (Text)
+import           Data.Text                  (Text)
 import           HTMLRendering
 import           Models
-import qualified Network.HTTP.Types.Header     as HTTP
+import qualified Network.HTTP.Types.Header  as HTTP
 import           Servant
 import           System.FilePath
-import           Web.Cookie
 
 newtype Homepage = Homepage { unEssays :: [Essay] } deriving ToJSON
 newtype Single = Single { unSingle :: Essay } deriving ToJSON
 data LoginPage = LoginPage
 
 type AppM a = ReaderT AppState (ExceptT ServantErr IO) (Rendered a)
-
-type ReturnsCookie = Headers '[Header "Set-Cookie" (Maybe SetCookie)]
-
-instance ToByteString (Maybe SetCookie) where
-    builder Nothing = mempty
-    builder (Just sc) = renderSetCookie sc
 
 -----------------------------------------------------------
 -- Endpoint definition
