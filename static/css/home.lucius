@@ -1,0 +1,27 @@
+body .speech {
+  .bubble.preview-bubble {
+    padding: 0;
+
+    .post-preview {
+      margin-bottom: 0;
+      position: relative;
+
+      a.post-title {
+        color: #222;
+        text-rendering: optimizeLegibility;
+        padding: 25px;
+        display: block;
+        font-weight: 600;
+
+        &:hover {
+          color: #666;
+        }
+      }
+    }
+  }
+
+  .pages {
+    color: #999;
+    text-align: center;
+  }
+}
