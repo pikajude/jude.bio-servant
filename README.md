@@ -1,0 +1,1 @@
+Objective: rewrite [jude.bio](https://jude.bio) to be a single binary using [servant](https://haskell-servant.github.io)
