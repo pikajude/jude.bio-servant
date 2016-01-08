@@ -8,7 +8,7 @@
 module API where
 
 import           Control.Monad.Reader
-import           Control.Monad.Trans.Except
+import           Control.Monad.Trans.Either
 import           Data.Aeson
 import           Data.Text                  (Text)
 import           HTMLRendering
@@ -26,7 +26,7 @@ instance ToJSON Single where
 
 type AppM a = AppBare (Rendered a)
 
-type AppBare a = ReaderT AppState (ExceptT ServantErr IO) a
+type AppBare a = ReaderT AppState (EitherT ServantErr IO) a
 
 -----------------------------------------------------------
 -- Endpoint definition

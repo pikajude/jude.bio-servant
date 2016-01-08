@@ -16,7 +16,7 @@ allCss :: IO B.ByteString
 allCss = do
     normalizeCss <- readFile "bower_components/foundation/css/normalize.min.css"
     foundationCss <- readFile "bower_components/foundation/css/foundation.min.css"
-    fontAwesomeCss <- readFile "bower_components/fontawesome/css/font-awesome.min.css"
+    fontAwesomeCss <- readFile "bower_components/font-awesome/css/font-awesome.min.css"
     return $ toStrict $ mconcat
         [ normalizeCss, foundationCss, fontAwesomeCss
         , cssToBs $(luciusFile "static/css/all.lucius")

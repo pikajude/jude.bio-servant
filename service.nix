@@ -21,43 +21,11 @@ in
         description = "Package to use.";
       };
 
-      environment = mkOption {
-        type = with types; uniq (enum ["Development" "Staging" "Production"]);
-        description = ''
-          Environment webapp should run in.
-        '';
-      };
-
       http = {
         port = mkOption {
           type = with types; uniq int;
           description = "The TCP port to listen on";
         };
-
-        approot = mkOption {
-          type = with types; uniq string;
-          description = "/ for the webapp";
-        };
-
-        staticroot = mkOption {
-          type = with types; uniq string;
-          description = "The hostname of the static server";
-        };
-      };
-
-      aws = mkOption {
-        type = with types; uniq attrs;
-        description = "the AWS configuration";
-      };
-
-      authy_key = mkOption {
-        type = types.string;
-        description = "the Authy API key";
-      };
-
-      authy_userid = mkOption {
-        type = types.int;
-        description = "the Authy user ID";
       };
 
       user = {
@@ -97,22 +65,8 @@ in
       wantedBy = [ "multi-user.target" ];
       description = "Run the jude-web server";
       environment = {
-        # app stuff
-        HOME = "/homeless-shelter";
         PORT = toString cfg.http.port;
-        APPROOT = cfg.http.approot;
-        STATICROOT = cfg.http.staticroot;
-
         STATE_DIR = cfg.stateDir;
-
-        # AWS
-        AWS_ACCESS_KEY_ID = cfg.aws.key;
-        AWS_ACCESS_KEY_SECRET = cfg.aws.secret;
-
-        # Authy
-        AUTHY_ENDPOINT = "api.authy.com";
-        AUTHY_KEY = cfg.authy_key;
-        AUTHY_USERID = builtins.toString cfg.authy_userid;
       };
 
       serviceConfig = {
@@ -121,6 +75,7 @@ in
         Restart = "on-failure";
         RestartSec = 5;
         StartLimitInterval = "1min";
+        WorkingDirectory = cfg.stateDir;
       };
 
       preStart = ''
@@ -129,7 +84,7 @@ in
       '';
 
       script = ''
-        ${cfg.package}/bin/myapi
+        ${cfg.package}/bin/jude-web
       '';
     };
   };

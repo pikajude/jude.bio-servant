@@ -30,21 +30,21 @@ library
                      , clientsession
                      , cookie
                      , digestive-functors
+                     , either
                      , file-embed
                      , filepath
                      , highlighter
                      , http-media
                      , http-types
                      , ixset
-                     , lens
                      , markdown
                      , mtl
                      , network-uri
                      , pcre-light
                      , pwstore-fast
                      , safecopy
-                     , servant >= 0.5
-                     , servant-server >= 0.5
+                     , servant
+                     , servant-server
                      , shakespeare
                      , text
                      , template-haskell
@@ -59,10 +59,11 @@ library
                      , wai-session-clientsession
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -Wall -O0
+  ghc-options:         -Wall -O2
 
 executable jude-web
   build-depends:       base, jude-web, wai-extra, warp
   main-is:             Main.hs
   hs-source-dirs:      exe
   default-language:    Haskell2010
+  ghc-options:         -Wall -O2 -threaded

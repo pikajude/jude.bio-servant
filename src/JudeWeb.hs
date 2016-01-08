@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -ddump-splices #-}
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -8,7 +9,7 @@
 module JudeWeb where
 
 import           Control.Monad.Reader
-import           Control.Monad.Trans.Except
+import           Control.Monad.Trans.Either
 import           Crypto.PasswordStore                      (verifyPassword)
 import           Data.Acid
 import           Data.ByteString.UTF8                      (fromString)
@@ -57,11 +58,11 @@ requireAuth :: AppBare User
 requireAuth = do
     mu <- fetch KUser
     case mu of
-        Nothing -> lift $ throwE err401
+        Nothing -> lift $ left err401
         Just u -> return u
 
 redirectTo :: URI -> AppBare a
-redirectTo uri = lift $ throwE (err301 { errHeaders =
+redirectTo uri = lift $ left (err301 { errHeaders =
     [ ("Location", "/" <> fromString (show uri)) ] })
 
 serveStatic :: Application
@@ -79,7 +80,7 @@ serveSingle sl = do
     mu <- fetch KUser
     e <- runDB $ SelectSlug sl
     case e of
-        Nothing -> lift $ throwE err404
+        Nothing -> lift $ left err404
         Just x -> return $ Rendered (Single x) (renderSingle x mu)
 
 serveEdit :: (EssaySlug -> AppM Single) :<|> (EssaySlug -> PartialEssay -> AppM Single)
@@ -88,7 +89,7 @@ serveEdit = serveEditGet :<|> serveEditPatch where
         _ <- requireAuth
         e <- runDB $ SelectSlug sl
         case e of
-            Nothing -> lift $ throwE err404
+            Nothing -> lift $ left err404
             Just ese -> do
                 fg <- getForm "essay" (essayForm $ Just ese)
                 return $ Rendered (Single ese) (renderEdit ese fg)
@@ -96,7 +97,7 @@ serveEdit = serveEditGet :<|> serveEditPatch where
         _ <- requireAuth
         e <- runDB $ SelectSlug sl
         case e of
-            Nothing -> lift $ throwE err404
+            Nothing -> lift $ left err404
             Just ese -> do
                 (_v, _me) <- postForm "essay" (essayForm $ Just ese) (efEnv part)
                 case _me of
@@ -109,7 +110,7 @@ serveNew :: Essay -> AppM Single
 serveNew essay = do
     _ <- requireAuth
     execDB $ Insert essay
-    lift $ throwE (err301 { errHeaders = [("Location", "/")] })
+    lift $ left (err301 { errHeaders = [("Location", "/")] })
 
 serveLoginGet :: AppM LoginPage
 serveLoginGet = do

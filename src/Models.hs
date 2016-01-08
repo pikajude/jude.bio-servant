@@ -19,7 +19,6 @@
 
 module Models where
 
-import Control.Lens         (over, _head)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Acid
@@ -36,10 +35,11 @@ import Data.Ord
 import Data.SafeCopy
 import Data.Text            (Text)
 import Data.Time
+import Models.OverHead
 import Network.Wai.Session
 import Prelude              hiding (div)
-import Servant              (FromFormUrlEncoded (..), FromHttpApiData,
-                             ToFormUrlEncoded (..), ToHttpApiData)
+import Servant              (FromFormUrlEncoded (..), FromText, ToFormUrlEncoded (..),
+                             ToText)
 import Text.Blaze           (ToMarkup)
 import Web.ClientSession    (Key)
 
@@ -62,7 +62,7 @@ data Essay = Essay
 newtype EssayTitle = EssayTitle { unTitle :: Text }
                      deriving (HTML_INSTANCES)
 newtype EssaySlug = EssaySlug { unSlug :: Text }
-                    deriving (JSON_INSTANCES, FromHttpApiData, ToHttpApiData)
+                    deriving (JSON_INSTANCES, ToText, FromText)
 newtype EssayContent = EssayContent { unContent :: Text }
                        deriving (JSON_INSTANCES)
 newtype EssayCreatedAt = EssayCreatedAt { unCreatedAt :: UTCTime }
@@ -83,7 +83,7 @@ deriveSafeCopy 0 'base ''EssaySlug
 deriveSafeCopy 0 'base ''EssayContent
 deriveSafeCopy 0 'base ''EssayCreatedAt
 
-deriveJSON defaultOptions { fieldLabelModifier = over _head toLower . drop 5
+deriveJSON defaultOptions { fieldLabelModifier = overHead toLower . drop 5
                           , constructorTagModifier = map toLower
                           } ''Essay
 
@@ -102,7 +102,7 @@ instance ToFormUrlEncoded PartialEssay where
     toFormUrlEncoded PartialEssay{..} = catMaybes
         [(,) "essay.title" <$> peTitle, (,) "essay.content" <$> peContent]
 
-deriveJSON defaultOptions { fieldLabelModifier = over _head toLower . drop 2
+deriveJSON defaultOptions { fieldLabelModifier = overHead toLower . drop 2
                           , constructorTagModifier = map toLower
                           } ''PartialEssay
 
