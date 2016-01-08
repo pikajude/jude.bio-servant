@@ -1,0 +1,15 @@
+<article .bubble>
+  <h2 .form-title>Write something
+  <form role=form method=post action=@{editLink (essaySlug e)}>
+    <input type=hidden name=_method value=PATCH>
+    <div .form-group :not (null (errors "title" view)):.error>
+      <label for=title>Title
+        <input .form-control name=#{absoluteRef "title" view} type=text value=#{fieldInputText "title" view}>
+      $forall err <- errors "title" view
+        <small .error>#{err}
+    <div .form-group :not (null (errors "content" view)):.error>
+      <label for=content>Content
+        <textarea .form-control name=#{absoluteRef "content" view} type=text rows=10>#{fieldInputText "content" view}
+      $forall err <- errors "content" view
+        <small .error>#{err}
+    <button type=submit .btn .btn-default>Commit

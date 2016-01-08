@@ -6,6 +6,7 @@ module HTMLRendering where
 
 import {-# SOURCE #-} API
 import Control.Monad.Writer
+import Data.Aeson
 import Data.ByteString.Lazy          (ByteString)
 import Data.Text                     (Text, pack)
 import Network.HTTP.Media            ((//), (/:))
@@ -22,8 +23,8 @@ instance Accept HTML where
 -- | Helper for rendering
 data Rendered a = Rendered { member :: a, html :: ByteString }
 
-instance Foldable Rendered where
-    foldMap f (Rendered a _) = f a
+instance ToJSON a => ToJSON (Rendered a) where
+    toJSON (Rendered a _) = toJSON a
 
 instance MimeRender HTML (Rendered a) where
     mimeRender _ (Rendered _ h) = h
@@ -44,7 +45,10 @@ addStyleSheet :: FilePath -> PageWriter
 addStyleSheet s = tell (mempty, mempty, [Stylesheet s])
 
 htmlRender :: ((URI -> t -> Text) -> Html) -> ByteString
-htmlRender x = renderHtml $ x (\ uri _args -> pack ("/" <> show uri))
+htmlRender x = renderHtml $ x myUrlRenderer
+
+myUrlRenderer :: URI -> t -> Text
+myUrlRenderer uri _ = pack ("/" <> show uri)
 
 -- | Render a page with the default layout
 defaultLayout :: PageWriter -> ByteString

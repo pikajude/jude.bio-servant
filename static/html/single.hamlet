@@ -3,7 +3,7 @@
     #{essayTitle e}
     $maybe _ <- loggedInUser
       \ #
-      <a .edit-link .fa .fa-pencil href={EditPostR k}>
+      <a .edit-link .fa .fa-pencil href=@{editLink (essaySlug e)}>
       \ #
       <form .delete-form method=post action={DeletePostR k}>
         <input type=hidden name=_token value={token}>

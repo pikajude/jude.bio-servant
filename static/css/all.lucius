@@ -51,15 +51,15 @@ body {
           }
 
           &#github {
-            background-image: url(/s/img/github.png);
+            background-image: url(@{staticLink "img/github.png"});
           }
 
           &#linkedin {
-            background-image: url(/s/img/linkedin.png);
+            background-image: url(@{staticLink "img/linkedin.png"});
           }
 
           &#new-post {
-            background-image: url(/s/img/newpost.png);
+            background-image: url(@{staticLink "img/newpost.png"});
           }
         }
       }
@@ -67,7 +67,7 @@ body {
       #head {
         background-position: center left;
         background-repeat: no-repeat;
-        background-image: url(/s/img/otter.png);
+        background-image: url(@{staticLink "img/otter.png"});
         background-size: 48px 37px;
         width: 48px;
         height: 48px;
@@ -191,20 +191,20 @@ footer {
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   body .speech header {
     #head {
-      background-image: url(/s/img/otter@2x.png);
+      background-image: url(@{staticLink "img/otter@2x.png"});
     }
 
     #dots .dot {
       &#github {
-        background-image: url(/s/img/github@2x.png);
+        background-image: url(@{staticLink "img/github@2x.png"});
       }
 
       &#linkedin {
-        background-image: url(/s/img/linkedin@2x.png);
+        background-image: url(@{staticLink "img/linkedin@2x.png"});
       }
 
       &#new-post {
-        background-image: url(/s/img/newpost@2x.png);
+        background-image: url(@{staticLink "img/newpost@2x.png"});
       }
     }
   }

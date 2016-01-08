@@ -6,10 +6,11 @@ let
 
   f = { mkDerivation, acid-state, aeson, base, blaze-html
       , blaze-markup, bytestring, cereal, clientsession, cookie
-      , file-embed, filepath, highlighter, http-media, http-types, ixset
-      , lens, markdown, mtl, network-uri, pcre-light, safecopy, servant
-      , servant-server, shakespeare, stdenv, template-haskell, text, time
-      , transformers, vault, wai, wai-app-static, wai-extra, wai-session
+      , digestive-functors, file-embed, filepath, highlighter, http-media
+      , http-types, ixset, lens, markdown, mtl, network-uri, pcre-light
+      , pwstore-fast, safecopy, servant, servant-server, shakespeare
+      , stdenv, template-haskell, text, time, transformers, utf8-string
+      , vault, wai, wai-app-static, wai-extra, wai-session
       , wai-session-clientsession, warp
       }:
       mkDerivation {
@@ -20,10 +21,11 @@ let
         isExecutable = true;
         libraryHaskellDepends = [
           acid-state aeson base blaze-html blaze-markup bytestring cereal
-          clientsession cookie file-embed filepath highlighter http-media
-          http-types ixset lens markdown mtl network-uri pcre-light safecopy
-          servant servant-server shakespeare template-haskell text time
-          transformers vault wai wai-app-static wai-session
+          clientsession cookie digestive-functors file-embed filepath
+          highlighter http-media http-types ixset lens markdown mtl
+          network-uri pcre-light pwstore-fast safecopy servant servant-server
+          shakespeare template-haskell text time transformers utf8-string
+          vault wai wai-app-static wai-extra wai-session
           wai-session-clientsession
         ];
         executableHaskellDepends = [ base wai-extra warp ];

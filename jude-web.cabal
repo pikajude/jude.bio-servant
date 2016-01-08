@@ -13,11 +13,14 @@ library
   other-modules:       API
                        HTMLRendering
                        Models
+                       Models.SessionData
+                       Pages.Edit
+                       Pages.Forms
                        Pages.Home
                        Pages.Login
                        Pages.Single
                        StaticFiles
-  build-depends:       base <4.9
+  build-depends:       base >= 4.7
                      , acid-state
                      , aeson
                      , blaze-html
@@ -26,6 +29,7 @@ library
                      , cereal
                      , clientsession
                      , cookie
+                     , digestive-functors
                      , file-embed
                      , filepath
                      , highlighter
@@ -37,6 +41,7 @@ library
                      , mtl
                      , network-uri
                      , pcre-light
+                     , pwstore-fast
                      , safecopy
                      , servant >= 0.5
                      , servant-server >= 0.5
@@ -45,9 +50,11 @@ library
                      , template-haskell
                      , time
                      , transformers
+                     , utf8-string
                      , vault
                      , wai
                      , wai-app-static
+                     , wai-extra
                      , wai-session
                      , wai-session-clientsession
   hs-source-dirs:      src

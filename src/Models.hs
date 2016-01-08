@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -10,6 +11,7 @@
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 #define INSTANCES Data, Eq, Ord, Show
 #define JSON_INSTANCES INSTANCES, ToJSON, FromJSON
@@ -17,27 +19,29 @@
 
 module Models where
 
-import           Control.Lens         (over, _head)
-import           Control.Monad.Reader
-import           Control.Monad.State
-import           Data.Acid
-import           Data.Acid.Core       (MethodState)
-import           Data.Aeson
-import           Data.Aeson.TH
-import           Data.ByteString      (ByteString)
-import           Data.Char
-import           Data.Data            hiding (Proxy)
-import           Data.IxSet
-import           Data.SafeCopy
-import qualified Data.Serialize       as S
-import           Data.Text            (Text)
-import           Data.Time
-import           Network.Wai.Session
-import           Prelude              hiding (div)
-import           Servant              (FromFormUrlEncoded (..), FromHttpApiData,
-                                       ToFormUrlEncoded (..), ToHttpApiData)
-import           Text.Blaze           (ToMarkup)
-import           Web.ClientSession    (Key)
+import Control.Lens         (over, _head)
+import Control.Monad.Reader
+import Control.Monad.State
+import Data.Acid
+import Data.Acid.Core       (MethodState)
+import Data.Aeson
+import Data.Aeson.TH
+import Data.ByteString      (ByteString)
+import Data.Char
+import Data.Data            hiding (Proxy)
+import Data.IxSet
+import Data.List
+import Data.Maybe
+import Data.Ord
+import Data.SafeCopy
+import Data.Text            (Text)
+import Data.Time
+import Network.Wai.Session
+import Prelude              hiding (div)
+import Servant              (FromFormUrlEncoded (..), FromHttpApiData,
+                             ToFormUrlEncoded (..), ToHttpApiData)
+import Text.Blaze           (ToMarkup)
+import Web.ClientSession    (Key)
 
 data AppState = AppState
               { appKey      :: Key
@@ -84,39 +88,34 @@ deriveJSON defaultOptions { fieldLabelModifier = over _head toLower . drop 5
                           } ''Essay
 
 instance Indexable Essay where
-    empty = ixSet [ ixGen (Proxy :: Proxy EssaySlug) ]
+    empty = ixSet [ ixFun indexEssay ]
+        where indexEssay Essay{..} = [ essaySlug ]
+
+data PartialEssay = PartialEssay { peTitle :: Maybe Text, peContent :: Maybe Text }
+                  deriving (INSTANCES)
+
+instance FromFormUrlEncoded PartialEssay where
+    fromFormUrlEncoded ps = Right $ PartialEssay
+        (lookup "essay.title" ps) (lookup "essay.content" ps)
+
+instance ToFormUrlEncoded PartialEssay where
+    toFormUrlEncoded PartialEssay{..} = catMaybes
+        [(,) "essay.title" <$> peTitle, (,) "essay.content" <$> peContent]
+
+deriveJSON defaultOptions { fieldLabelModifier = over _head toLower . drop 2
+                          , constructorTagModifier = map toLower
+                          } ''PartialEssay
 
 -- | User
-data User = User { username :: Text, password :: Text } deriving Show
+data LoginUser = LoginUser { username :: Text, password :: Text } deriving Show
 
-deriveJSON defaultOptions ''User
+deriveJSON defaultOptions ''LoginUser
 
-instance FromFormUrlEncoded User where
-    fromFormUrlEncoded ps = User
+instance FromFormUrlEncoded LoginUser where
+    fromFormUrlEncoded ps = LoginUser
         <$> lookupE "Missing username" "username" ps
         <*> lookupE "Missing password" "password" ps
         where lookupE s k f = maybe (Left s) Right $ lookup k f
-
-instance ToFormUrlEncoded User where
-    toFormUrlEncoded (User u p) = [("username", u), ("password", p)]
-
--- | Session data
-newtype UserS = UserS String deriving (S.Serialize, Show)
-
-set :: (S.Serialize a, MonadReader AppState m, MonadIO m)
-    => ByteString -> a -> m ()
-set k s = do
-    Just (_, put') <- asks appSession
-    liftIO $ put' k $ S.encode s
-
-fetch :: (S.Serialize a, MonadReader AppState m, MonadIO m)
-      => ByteString -> m (Maybe a)
-fetch k = do
-    Just (fetch', _) <- asks appSession
-    liftM (>>= em . S.decode) $ liftIO (fetch' k)
-    where
-        em (Left _) = Nothing
-        em (Right x) = Just x
 
 -- | Running
 runDB :: (MonadIO m, MonadReader AppState m, QueryEvent event, MethodState event ~ Database)
@@ -134,16 +133,21 @@ execDB f = do
 getAll :: Query Database [Essay]
 getAll = do
     Database essays <- ask
-    return $ toAscList (Proxy :: Proxy EssayCreatedAt) essays
+    return $ sortBy (comparing essayCreatedAt) $ toList essays
 
 selectSlug :: EssaySlug -> Query Database (Maybe Essay)
 selectSlug slug = do
     Database essays <- ask
     return $ getOne $ essays @= slug
 
+replaceSlug :: EssaySlug -> Essay -> Update Database ()
+replaceSlug slug e = do
+    Database essays <- get
+    put $ Database $ updateIx slug e essays
+
 insert :: Essay -> Update Database ()
 insert e = do
     Database es <- get
     put $ Database $ Data.IxSet.insert e es
 
-makeAcidic ''Database ['getAll, 'selectSlug, 'Models.insert]
+makeAcidic ''Database ['getAll, 'selectSlug, 'replaceSlug, 'Models.insert]

@@ -4,14 +4,14 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
-module Pages.Home where
+module Pages.Edit where
 
 import API
 import Data.ByteString.Lazy (ByteString)
 import HTMLRendering
 import Models
-import Models.SessionData
+import Text.Digestive.View
 import Text.Hamlet
 
-renderHome :: Homepage -> Maybe User -> ByteString
-renderHome (Homepage es) mu = defaultLayout $ render $(hamletFile "static/html/home.hamlet")
+renderEdit :: Essay -> View String -> ByteString
+renderEdit e view = defaultLayout $ render $(hamletFile "static/html/edit.hamlet")

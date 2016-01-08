@@ -20,6 +20,13 @@ staticFiles =
     , ("img/github@2x.png",   $(embedFile "static/img/github@2x.png"))
     , ("img/otter@2x.png",    $(embedFile "static/img/otter@2x.png"))
     , ("img/linkedin@2x.png", $(embedFile "static/img/linkedin@2x.png"))
+
+    , ("fonts/fontawesome-webfont.woff2",
+        $(embedFile "bower_components/fontawesome/fonts/fontawesome-webfont.woff2"))
+    , ("fonts/fontawesome-webfont.woff",
+        $(embedFile "bower_components/fontawesome/fonts/fontawesome-webfont.woff"))
+    , ("fonts/fontawesome-webfont.ttf",
+        $(embedFile "bower_components/fontawesome/fonts/fontawesome-webfont.ttf"))
     ]
 
 serveFile :: Application

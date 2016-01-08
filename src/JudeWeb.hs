@@ -2,32 +2,42 @@
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TypeOperators             #-}
 
 module JudeWeb where
 
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Except
+import           Crypto.PasswordStore                      (verifyPassword)
 import           Data.Acid
--- import           Data.FileEmbed
-import           Data.IxSet                        hiding (Proxy)
+import           Data.ByteString.UTF8                      (fromString)
+import           Data.FileEmbed
+import           Data.IxSet                                hiding (Proxy)
 import           Data.Maybe
+import           Data.Monoid
 import           Data.Proxy
-import qualified Data.Vault.Lazy                   as V
+import           Data.Text.Encoding
+import qualified Data.Vault.Lazy                           as V
 import           HTMLRendering
-import           Network.Wai                       (Application, vault)
+import           Models.SessionData
+import           Network.Wai                               (Application, vault)
+import           Network.Wai.Middleware.MethodOverridePost
 import           Network.Wai.Session
 import           Network.Wai.Session.ClientSession
 import           Servant.API
 import           Servant.Server
 import           StaticFiles
 import           System.Environment
-import           Web.ClientSession                 hiding (Key)
+import           Text.Digestive.View
+import           Web.ClientSession                         hiding (Key)
 import           Web.Cookie
 
 import           API
 import           Models
 
+import           Pages.Edit
+import           Pages.Forms
 import           Pages.Home
 import           Pages.Login
 import           Pages.Single
@@ -38,65 +48,95 @@ server appState = enter' serveHome
              :<|> enter' serveEdit
              :<|> enter' serveNew
              :<|> (enter' serveLoginGet :<|> enter' serveLoginPost)
+             :<|> enter' serveLogout
              :<|> serveStatic
     where
         enter' = enter (runReaderTNat appState)
+
+requireAuth :: AppBare User
+requireAuth = do
+    mu <- fetch KUser
+    case mu of
+        Nothing -> lift $ throwE err401
+        Just u -> return u
+
+redirectTo :: URI -> AppBare a
+redirectTo uri = lift $ throwE (err301 { errHeaders =
+    [ ("Location", "/" <> fromString (show uri)) ] })
 
 serveStatic :: Application
 serveStatic = serveFile
 
 serveHome :: AppM Homepage
 serveHome = do
-    mu <- fetch "user"
-    set "user" $ UserS "pikajude"
+    mu <- fetch KUser
     es <- runDB GetAll
     let h = Homepage es
     return $ Rendered h (renderHome h mu)
 
 serveSingle :: EssaySlug -> AppM Single
 serveSingle sl = do
+    mu <- fetch KUser
     e <- runDB $ SelectSlug sl
     case e of
         Nothing -> lift $ throwE err404
-        Just x -> do
-            let s = Single x
-                rendered = Rendered s (renderSingle s Nothing)
-            return rendered
+        Just x -> return $ Rendered (Single x) (renderSingle x mu)
 
-serveEdit :: EssaySlug -> AppM Single :<|> (Essay -> AppM Single)
-serveEdit sl = serveEditGet :<|> serveEditPatch where
-    serveEditGet = do
+serveEdit :: (EssaySlug -> AppM Single) :<|> (EssaySlug -> PartialEssay -> AppM Single)
+serveEdit = serveEditGet :<|> serveEditPatch where
+    serveEditGet sl = do
+        _ <- requireAuth
         e <- runDB $ SelectSlug sl
         case e of
             Nothing -> lift $ throwE err404
-            Just ese -> error $ show ese
-    serveEditPatch ese = error (show ese)
+            Just ese -> do
+                fg <- getForm "essay" (essayForm $ Just ese)
+                return $ Rendered (Single ese) (renderEdit ese fg)
+    serveEditPatch sl part = do
+        _ <- requireAuth
+        e <- runDB $ SelectSlug sl
+        case e of
+            Nothing -> lift $ throwE err404
+            Just ese -> do
+                (_v, _me) <- postForm "essay" (essayForm $ Just ese) (efEnv part)
+                case _me of
+                    Nothing -> return $ Rendered (Single ese) (renderEdit ese _v)
+                    Just newE -> do
+                        execDB $ ReplaceSlug sl newE
+                        redirectTo $ readLink (essaySlug newE)
 
 serveNew :: Essay -> AppM Single
 serveNew essay = do
+    _ <- requireAuth
     execDB $ Insert essay
     lift $ throwE (err301 { errHeaders = [("Location", "/")] })
 
 serveLoginGet :: AppM LoginPage
-serveLoginGet = return $ Rendered undefined renderLogin
+serveLoginGet = do
+    mu <- fetch KUser
+    case mu of
+        Just _ -> redirectTo homeLink
+        Nothing -> return $ Rendered undefined renderLogin
 
-serveLoginPost :: User -> AppM ()
-serveLoginPost _user = do
-    _key <- asks appKey
-    return undefined
-    {- if password user == $(embedStringFile "important-secret")
-        then do
-            nc <- newCookie key (SessionStore (Just (username user)) Nothing)
-            lift $ throwE (err301
-                 { errHeaders = [ ("Location", "/")
-                                , ("Set-Cookie", nc)
-                                ] })
-        else do
-            nc <- newCookie key (SessionStore Nothing (Just "Invalid password"))
-            lift $ throwE (err301
-                 { errHeaders = [ ("Location", "/in")
-                                , ("Set-Cookie", nc)
-                                ] }) -}
+serveLoginPost :: LoginUser -> AppM ()
+serveLoginPost user = do
+    mu <- fetch KUser
+    case mu of
+        Just _ -> redirectTo homeLink
+        Nothing ->
+            if verifyPassword (encodeUtf8 $ password user) $(embedFile "important-secret")
+                then do
+                    set KUser $ User (username user)
+                    redirectTo homeLink
+                else do
+                    set KMessage $ Message "Invalid username or password"
+                    redirectTo loginLink
+
+serveLogout :: AppBare ()
+serveLogout = do
+    _ <- requireAuth
+    clear KUser
+    redirectTo homeLink
 
 serveApp :: IO Application
 serveApp = do
@@ -105,6 +145,8 @@ serveApp = do
     k <- getDefaultKey
     vk <- V.newKey
     return $ withSession (clientsessionStore k) "_SESSION" (def { setCookiePath = Just "/" }) vk
-        $ \ req -> serve (Proxy :: Proxy API)
+           $ methodOverridePost
+        $ \ req ->
+           serve (Proxy :: Proxy API)
             (server (AppState k database (V.lookup vk $ vault req)))
             req

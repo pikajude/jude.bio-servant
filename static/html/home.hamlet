@@ -1,7 +1,7 @@
 <article .bubble .last-bubble>
   <h5 .site-title>
-    $maybe UserS u <- mu
-      #{u} is logged in
+    $maybe User u <- mu
+      Today your username is #{u}
     $nothing
       I’m Jude, a functional programmer with a colorful head.
 
