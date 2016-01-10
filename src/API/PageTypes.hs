@@ -29,13 +29,13 @@ instance ToJSON NewPage where
     toJSON (NewPage v _) = toJSON (Errors v)
 
 -- | Edit a post
-data EditPage = EditPage Essay (View String) User
+data EditPage = EditPage Essay (View String)
 
 instance ToJSON EditPage where
-    toJSON (EditPage e _ _) = toJSON e
+    toJSON (EditPage e _) = toJSON e
 
 -- | Auth pages
-data LoginPage = LoginPage
+data LoginPage = LoginPage (View String)
 data LogoutPage = LogoutPage
 
 instance MimeRender PlainText LogoutPage where

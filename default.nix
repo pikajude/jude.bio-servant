@@ -1,10 +1,10 @@
 { mkDerivation, acid-state, aeson, base, blaze-html, blaze-markup
 , bytestring, cereal, clientsession, cookie, digestive-functors
-, either, file-embed, filepath, highlighter, http-media, http-types
-, ixset, markdown, mtl, network-uri, pcre-light, pwstore-fast
-, safecopy, servant, servant-docs, servant-server, shakespeare
-, stdenv, template-haskell, text, time, transformers, utf8-string
-, vault, wai, wai-app-static, wai-extra, wai-session
+, file-embed, filepath, highlighter, http-media, http-types, ixset
+, markdown, mtl, network-uri, pcre-light, pwstore-fast, safecopy
+, servant, servant-docs, servant-server, shakespeare, stdenv
+, template-haskell, text, time, transformers, utf8-string, vault
+, wai, wai-app-static, wai-extra, wai-session
 , wai-session-clientsession, warp
 }:
 mkDerivation {
@@ -15,7 +15,7 @@ mkDerivation {
   isExecutable = true;
   libraryHaskellDepends = [
     acid-state aeson base blaze-html blaze-markup bytestring cereal
-    clientsession cookie digestive-functors either file-embed filepath
+    clientsession cookie digestive-functors file-embed filepath
     highlighter http-media http-types ixset markdown mtl network-uri
     pcre-light pwstore-fast safecopy servant servant-docs
     servant-server shakespeare template-haskell text time transformers

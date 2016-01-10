@@ -34,6 +34,7 @@ let
   };
 
 in pkgs.haskell.lib.overrideCabal build (drv: {
+  configureFlags = [ "-fopt" ];
   doHaddock = false;
   enableSharedExecutables = false;
   enableSharedLibraries = false;

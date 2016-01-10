@@ -1,10 +1,10 @@
 <div .form-group :not (null (errors "title" view)):.error>
-  <label for=title>Title
+  <label for=#{absoluteRef "title" view}>Title
     <input .form-control name=#{absoluteRef "title" view} type=text value=#{fieldInputText "title" view}>
   $forall err <- errors "title" view
     <small .error>#{err}
 <div .form-group :not (null (errors "content" view)):.error>
-  <label for=content>Content
+  <label for=#{absoluteRef "content" view}>Content
     <textarea .form-control name=#{absoluteRef "content" view} type=text rows=10>#{fieldInputText "content" view}
   $forall err <- errors "content" view
     <small .error>#{err}

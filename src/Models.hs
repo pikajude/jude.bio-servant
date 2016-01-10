@@ -147,13 +147,13 @@ deriveJSON defaultOptions ''LoginUser
 
 instance FromFormUrlEncoded LoginUser where
     fromFormUrlEncoded ps = LoginUser
-        <$> lookupE "Missing username" "username" ps
-        <*> lookupE "Missing password" "password" ps
+        <$> lookupE "Missing username" "login.username" ps
+        <*> lookupE "Missing password" "login.password" ps
         where lookupE s k f = maybe (Left s) Right $ lookup k f
 
 instance ToFormUrlEncoded LoginUser where
     toFormUrlEncoded LoginUser{..} =
-        [("username", username), ("password", password)]
+        [("login.username", username), ("login.password", password)]
 
 -- | Running
 runDB :: (MonadIO m, MonadReader AppState m, QueryEvent event, MethodState event ~ Database)

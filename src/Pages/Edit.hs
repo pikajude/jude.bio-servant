@@ -15,7 +15,7 @@ import Text.Digestive.View
 import Text.Hamlet
 
 instance MimeRender HTML EditPage where
-    mimeRender _ (EditPage e view _) = defaultLayout $ do
+    mimeRender _ (EditPage e view) = defaultLayout $ do
         setTitle $ "Editing " <> unTitle (essayTitle e)
         let form = $(hamletFile "static/html/_form.hamlet")
         render $(hamletFile "static/html/edit.hamlet")

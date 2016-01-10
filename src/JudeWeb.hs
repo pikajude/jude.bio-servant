@@ -2,22 +2,18 @@
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TypeOperators             #-}
 
 module JudeWeb where
 
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Except
-import           Crypto.PasswordStore                      (verifyPassword)
 import           Data.Acid
 import           Data.Aeson                                (encode)
 import           Data.ByteString.UTF8                      (fromString)
-import           Data.FileEmbed
 import           Data.IxSet                                hiding (Proxy)
 import           Data.Monoid
 import           Data.Proxy
-import           Data.Text.Encoding
 import qualified Data.Vault.Lazy                           as V
 import           Models.SessionData
 import           Network.Wai                               (Application, vault)
@@ -39,7 +35,7 @@ import           Models
 import           Pages.Edit                                ()
 import           Pages.Forms
 import           Pages.Home                                ()
-import           Pages.Login                               ()
+import           Pages.Login
 import           Pages.New                                 ()
 import           Pages.Single                              ()
 
@@ -90,26 +86,26 @@ serveEdit :: ToFormUrlEncoded a
         :<|> (EssaySlug -> a -> AppBare EditPage :<|> AppBare ())
 serveEdit = serveEditGet :<|> serveEditPatch where
     serveEditGet sl = do
-        mu <- requireAuth
+        _ <- requireAuth
         e <- runDB $ SelectSlug sl
         case e of
             Nothing -> lift $ throwE err404
             Just ese -> do
                 fg <- getForm "essay" (essayForm $ Just ese)
-                return $ EditPage ese fg mu
+                return $ EditPage ese fg
 
 serveEditPatch :: ToFormUrlEncoded r
                => EssaySlug -> r -> AppBare EditPage :<|> AppBare ()
 serveEditPatch sl part = sHtml :<|> sJson where
     common = do
-        mu <- requireAuth
+        _ <- requireAuth
         e <- runDB $ SelectSlug sl
         case e of
             Nothing -> lift $ throwE err404
             Just ese -> do
                 (_v, _me) <- postForm "essay" (essayForm $ Just ese) (efEnv part)
                 case _me of
-                    Nothing -> return $ Left $ EditPage ese _v mu
+                    Nothing -> return $ Left $ EditPage ese _v
                     Just newE -> do
                         execDB $ ReplaceSlug sl newE
                         return $ Right newE
@@ -157,21 +153,22 @@ serveLoginGet = do
     mu <- fetch KUser
     case mu of
         Just _ -> redirectTo homeLink
-        Nothing -> return LoginPage
+        Nothing -> do
+            v <- getForm "login" loginForm
+            return $ LoginPage v
 
 serveLoginPost :: LoginUser -> AppBare LoginPage
 serveLoginPost user = do
     mu <- fetch KUser
     case mu of
         Just _ -> redirectTo homeLink
-        Nothing ->
-            if verifyPassword (encodeUtf8 $ password user) $(embedFile "important-secret")
-                then do
-                    set KUser $ User (username user)
+        Nothing -> do
+            (v, ml) <- postForm "login" loginForm (efEnv user)
+            case ml of
+                Nothing -> return $ LoginPage v
+                Just u -> do
+                    set KUser $ User (username u)
                     redirectTo homeLink
-                else do
-                    set KMessage $ Message "Invalid username or password"
-                    redirectTo loginLink
 
 serveLogout :: AppBare LogoutPage
 serveLogout = do
