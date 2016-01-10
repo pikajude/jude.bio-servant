@@ -20,6 +20,7 @@ staticFiles =
     , ("img/github@2x.png",   $(embedFile "static/img/github@2x.png"))
     , ("img/otter@2x.png",    $(embedFile "static/img/otter@2x.png"))
     , ("img/linkedin@2x.png", $(embedFile "static/img/linkedin@2x.png"))
+    , ("js/all.js",           $(embedFile "static/js/all.js"))
 
     , ("fonts/fontawesome-webfont.woff2",
         $(embedFile "bower_components/font-awesome/fonts/fontawesome-webfont.woff2"))

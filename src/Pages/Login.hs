@@ -13,9 +13,9 @@ import Data.String
 import Data.Text.Encoding
 import HTMLRendering
 import Models
+import Pages.Forms
 import Servant.API
 import Text.Digestive.Form
-import Text.Digestive.View
 import Text.Hamlet
 
 loginForm :: (Monad m, Monoid v, IsString v)

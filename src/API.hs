@@ -12,6 +12,7 @@ import           Control.Monad.Reader
 import           Control.Monad.Trans.Except
 import           Data.Aeson
 import           Data.Text                  (Text)
+import           Data.Void                  (Void)
 import           HTMLRendering
 import           Models
 import qualified Network.HTTP.Types.Header  as HTTP
@@ -41,6 +42,10 @@ type PatchEditE = "e" :> Capture "slug" EssaySlug :>
         :> (Verb 'PATCH 400 '[HTML] EditPage
        :<|> PatchNoContent '[JSON] ())
 
+type DeleteE = "d" :> Capture "slug" EssaySlug
+    :> (DeleteNoContent '[HTML] Void
+   :<|> DeleteNoContent '[JSON] ())
+
 type GetLoginE = "in" :> Get '[HTML] LoginPage
 type PostLoginE = "in" :> ReqBody '[FormUrlEncoded] LoginUser
     :> Verb 'POST 400 '[HTML] LoginPage
@@ -53,6 +58,7 @@ type API = HomeE
       :<|> ReadE
       :<|> (GetNewE :<|> PutNewE)
       :<|> (GetEditE :<|> PatchEditE)
+      :<|> DeleteE
       :<|> (GetLoginE :<|> PostLoginE)
       :<|> LogoutE
       :<|> StaticE
@@ -72,6 +78,8 @@ newLink :: URI
 newLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetNewE)
 editLink :: EssaySlug -> URI
 editLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetEditE)
+deleteLink :: EssaySlug -> URI
+deleteLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy ("d" :> Capture "slug" EssaySlug :> DeleteNoContent '[HTML] Void))
 staticLink :: FilePath -> URI
 staticLink t = u { uriPath = uriPath u </> t } where
     u = safeLink (Proxy :: Proxy API) (Proxy :: Proxy StaticE)

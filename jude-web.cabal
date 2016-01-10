@@ -38,6 +38,7 @@ library
                      , clientsession
                      , cookie
                      , digestive-functors
+                     , digestive-functors-blaze
                      , file-embed
                      , filepath
                      , highlighter

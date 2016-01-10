@@ -11,10 +11,10 @@ import           Servant
 import           Text.Digestive.View
 
 -- | Homepage
-data Homepage = Homepage [Essay] (Maybe User)
+data Homepage = Homepage [Essay] (Maybe User) (Maybe Message)
 
 instance ToJSON Homepage where
-    toJSON (Homepage es _) = toJSON es
+    toJSON (Homepage es _ _) = toJSON es
 
 -- | Read a post
 data Single = Single Essay (Maybe User)

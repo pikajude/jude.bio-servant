@@ -15,6 +15,7 @@ import           Data.IxSet                                hiding (Proxy)
 import           Data.Monoid
 import           Data.Proxy
 import qualified Data.Vault.Lazy                           as V
+import           Data.Void                                 (Void)
 import           Models.SessionData
 import           Network.Wai                               (Application, vault)
 import           Network.Wai.Middleware.MethodOverridePost
@@ -46,6 +47,7 @@ server appState = (enter' serveHome
              :<|> enter' serveSingle
              :<|> enter' serveNew
              :<|> enter' serveEdit
+             :<|> enter' serveDelete
              :<|> (enter' serveLoginGet :<|> enter' serveLoginPost)
              :<|> enter' serveLogout
              :<|> serveStatic)
@@ -70,8 +72,10 @@ serveStatic = serveFile
 serveHome :: AppBare Homepage
 serveHome = do
     mu <- fetch KUser
+    mm <- fetch KMessage
+    clear KMessage
     es <- runDB GetAll
-    return $ Homepage es mu
+    return $ Homepage es mu mm
 
 serveSingle :: EssaySlug -> AppBare Single
 serveSingle sl = do
@@ -121,32 +125,44 @@ serveEditPatch sl part = sHtml :<|> sJson where
             Right _ -> return ()
 
 serveNew :: AppBare NewPage :<|> (EssayNew -> (AppBare NewPage :<|> AppBare ()))
-serveNew = serveNewGet :<|> serveNewPatch where
+serveNew = serveNewGet :<|> serveNewPut where
     serveNewGet = do
         mu <- requireAuth
         fg <- getForm "essay" (essayForm Nothing)
         return $ NewPage fg mu
 
-serveNewPatch :: EssayNew -> AppBare NewPage :<|> AppBare ()
-serveNewPatch part = serveNewHtml :<|> serveNewJson where
+serveNewPut :: EssayNew -> AppBare NewPage :<|> AppBare ()
+serveNewPut part = serveNewHtml :<|> serveNewJson where
     serveNewHtml = do
         res <- inserter
         case res of
             Left m -> return m
-            Right (Just s) -> error s
-            Right Nothing -> redirectTo homeLink
+            Right (_, Just s) -> error s
+            Right (e, Nothing) -> redirectTo $ readLink (essaySlug e)
     serveNewJson = do
         res <- inserter
         case res of
             Left m -> lift $ throwE (err400 { errBody = encode m })
-            Right (Just s) -> error s
-            Right Nothing -> return ()
+            Right (_, Just s) -> error s
+            Right (_, Nothing) -> return ()
     inserter = do
         mu <- requireAuth
         (_v, _me) <- postForm "essay" (essayForm Nothing) (efEnv part)
         case _me of
             Nothing -> return $ Left $ NewPage _v mu
-            Just essay -> Right <$> execDB (Insert essay)
+            Just essay -> Right . (,) essay <$> execDB (Insert essay)
+
+serveDelete :: EssaySlug -> (AppBare Void :<|> AppBare ())
+serveDelete slug = (do worked <- common
+                       if worked
+                           then set KMessage $ Message "Successfully deleted."
+                           else set KMessage $ Message "Essay not found."
+                       redirectTo homeLink)
+              :<|> (do worked <- common
+                       unless worked $ lift $ throwE err404)
+    where common = do
+            _ <- requireAuth
+            execDB $ Delete slug
 
 serveLoginGet :: AppBare LoginPage
 serveLoginGet = do

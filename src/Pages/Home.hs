@@ -14,5 +14,5 @@ import Servant.API
 import Text.Hamlet
 
 instance MimeRender HTML Homepage where
-    mimeRender _ (Homepage es mu) =
+    mimeRender _ (Homepage es mu mmsg) =
         defaultLayout $ render $(hamletFile "static/html/home.hamlet")

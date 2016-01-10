@@ -1,3 +1,8 @@
+$maybe Message msg <- mmsg
+  <div #message data-alert .alert-box .warning>
+    #{msg}
+    <button tabindex=0 href=# .close onclick="javascript:hideMessage()">&times;
+
 <article .bubble .last-bubble>
   <h5 .site-title>
     $maybe User u <- mu

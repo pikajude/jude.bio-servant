@@ -10,8 +10,8 @@ import API
 import Data.Monoid
 import HTMLRendering
 import Models
+import Pages.Forms
 import Servant.API
-import Text.Digestive.View
 import Text.Hamlet
 
 instance MimeRender HTML EditPage where

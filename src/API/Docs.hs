@@ -1,12 +1,15 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module API.Docs where
 
 import API
 import Data.Proxy
+import Data.Void     (Void)
+import HTMLRendering (HTML)
 import Models
 import Servant
 import Servant.Docs
@@ -53,7 +56,13 @@ instance ToSample Essay where
 instance ToSample Homepage where
     toSamples Proxy = do
         s <- toSamples Proxy
-        return (fst s, Homepage [snd s] Nothing)
+        return (fst s, Homepage [snd s] Nothing Nothing)
 
 instance ToCapture (Capture "slug" EssaySlug) where
     toCapture _ = DocCapture "slug" "The URL slug of the essay to retrieve"
+
+instance MimeRender HTML Void where
+    mimeRender _ _ = ""
+
+instance ToSample Void where
+    toSamples _ = []

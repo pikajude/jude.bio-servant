@@ -4,15 +4,20 @@
 
 module Pages.Forms where
 
-import Control.Monad.IO.Class
-import Control.Monad.Reader
-import Data.Maybe
-import Data.String
-import Data.Time
-import Models
-import Servant.API.ContentTypes
-import Text.Digestive.Form
-import Text.Digestive.Types
+import           Control.Monad.IO.Class
+import           Control.Monad.Reader
+import           Data.Maybe
+import           Data.String
+import           Data.Text                   (Text)
+import           Data.Time
+import           Models
+import           Servant.API.ContentTypes
+import qualified Text.Blaze.Html5            as H hiding (label)
+import qualified Text.Blaze.Html5.Attributes as A
+import qualified Text.Digestive.Blaze.Html5  as H
+import           Text.Digestive.Form
+import           Text.Digestive.Types
+import           Text.Digestive.View         (View, errors)
 
 essayForm :: (MonadReader AppState m, MonadIO m, Monoid v, IsString v)
           => Maybe Essay -> Form v m Essay
@@ -42,3 +47,16 @@ efEnv :: (Monad m, Monad n, ToFormUrlEncoded a)
       => a -> t -> m (Path -> n [FormInput])
 efEnv (toFormUrlEncoded -> ps) _fenc = return $ \ path ->
     return $ maybeToList $ TextInput <$> lookup (fromPath path) ps
+
+foundationField :: H.ToMarkup a => String -> Text -> View a -> r -> H.Html
+foundationField t r (fmap H.toHtml -> v) _ = H.div H.! A.class_ dclass $ do
+    H.label r v $ do
+        H.toHtml (t :: String)
+        tagger r v H.! A.class_ "form-control"
+    forM_ (errors r v) $ \ e ->
+        H.small H.! A.class_ "error" $ e
+    where
+        dclass = H.toValue ("form-group" ++ (if not (null (errors r v)) then " error" else "") :: String)
+        tagger "password" = H.inputPassword "password"
+        tagger "content" = H.inputTextArea (Just 10) Nothing "content"
+        tagger t' = H.inputText t'

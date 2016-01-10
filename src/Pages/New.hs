@@ -8,8 +8,8 @@ module Pages.New where
 
 import API
 import HTMLRendering
+import Pages.Forms
 import Servant.API
-import Text.Digestive.View
 import Text.Hamlet
 
 instance MimeRender HTML NewPage where

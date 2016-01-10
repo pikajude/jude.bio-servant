@@ -192,4 +192,13 @@ insert e = do
             return Nothing
         Just _ -> return $ Just "Slug collision"
 
-makeAcidic ''Database ['getAll, 'selectSlug, 'replaceSlug, 'Models.insert]
+delete :: EssaySlug -> Update Database Bool
+delete e = do
+    Database es <- get
+    case getOne (es @= e) of
+        Nothing -> return False
+        Just _ -> do
+            put $ Database $ Data.IxSet.deleteIx e es
+            return True
+
+makeAcidic ''Database ['getAll, 'selectSlug, 'replaceSlug, 'Models.insert, 'Models.delete]

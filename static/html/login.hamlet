@@ -3,17 +3,9 @@
   <form role=form method=post action=@{loginLink}>
     <div .row>
       <div .large-6 .columns>
-        <div .form-group :not (null (errors "username" view)):.error>
-          <label for=#{absoluteRef "username" view}>Username
-            <input name=#{absoluteRef "username" view} type=text value=#{fieldInputText "username" view} .form-control>
-          $forall err <- errors "username" view
-            <small .error>#{err}
+        ^{foundationField "Username" "username" view}
 
       <div .large-6 .columns>
-        <div .form-group :not (null (errors "password" view)):.error>
-          <label for=#{absoluteRef "password" view}>Password
-            <input name=#{absoluteRef "password" view} type=password value=#{fieldInputText "password" view} .form-control>
-          $forall err <- errors "password" view
-            <small .error>#{err}
+        ^{foundationField "Password" "password" view}
 
     <button type=submit .button .tiny>Try it
