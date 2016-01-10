@@ -25,6 +25,7 @@ import           Network.Wai.Middleware.MethodOverridePost
 import           Network.Wai.Session
 import           Network.Wai.Session.ClientSession
 import           Servant.API
+import           Servant.Docs                              hiding (API)
 import           Servant.Server
 import           StaticFiles
 import           Text.Digestive.View
@@ -32,6 +33,7 @@ import           Web.ClientSession                         hiding (Key)
 import           Web.Cookie
 
 import           API
+import           API.Docs                                  ()
 import           Models
 
 import           Pages.Edit                                ()
@@ -41,14 +43,17 @@ import           Pages.Login                               ()
 import           Pages.New                                 ()
 import           Pages.Single                              ()
 
-server :: AppState -> Server API
-server appState = enter' serveHome
+type APIWithDocs = API :<|> ("docs.md" :> Get '[PlainText] String)
+
+server :: AppState -> Server APIWithDocs
+server appState = (enter' serveHome
              :<|> enter' serveSingle
              :<|> enter' serveNew
              :<|> enter' serveEdit
              :<|> (enter' serveLoginGet :<|> enter' serveLoginPost)
              :<|> enter' serveLogout
-             :<|> serveStatic
+             :<|> serveStatic)
+             :<|> return (markdown $ docs (Proxy :: Proxy API))
     where
         enter' = enter (runReaderTNat appState)
 
@@ -181,6 +186,6 @@ serveApp = do
     vk <- V.newKey
     return $ methodOverridePost
            $ withSession (clientsessionStore k) "_SESSION" (def { setCookiePath = Just "/" }) vk
-           $ \ req -> serve (Proxy :: Proxy API)
+           $ \ req -> serve (Proxy :: Proxy APIWithDocs)
                  (server (AppState k database (V.lookup vk $ vault req)))
                  req

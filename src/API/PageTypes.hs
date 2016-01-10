@@ -36,7 +36,7 @@ instance ToJSON EditPage where
 
 -- | Auth pages
 data LoginPage = LoginPage
-data LogoutPage
+data LogoutPage = LogoutPage
 
 instance MimeRender PlainText LogoutPage where
     mimeRender _ _ = ""
