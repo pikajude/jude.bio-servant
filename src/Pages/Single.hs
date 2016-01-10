@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -7,7 +8,6 @@ module Pages.Single where
 
 import           API
 import qualified Data.ByteString             as BS
-import           Data.ByteString.Lazy        (ByteString)
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Text                   (Text, pack, unpack)
@@ -15,7 +15,7 @@ import           Data.Text.Encoding
 import           Data.Text.Lazy              (fromStrict)
 import           HTMLRendering
 import           Models
-import           Models.SessionData
+import           Servant.API
 import           Text.Blaze.Html
 import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -24,10 +24,10 @@ import           Text.Highlighter            hiding (Single)
 import           Text.Markdown
 import           Text.Regex.PCRE.Light
 
-renderSingle :: Essay -> Maybe User -> ByteString
-renderSingle e loggedInUser = defaultLayout $ do
-    setTitle $ unTitle (essayTitle e)
-    render $(hamletFile "static/html/single.hamlet")
+instance MimeRender HTML Single where
+    mimeRender _ (Single e loggedInUser) = defaultLayout $ do
+        setTitle $ unTitle (essayTitle e)
+        render $(hamletFile "static/html/single.hamlet")
 
 renderMd :: EssayContent -> Html
 renderMd (EssayContent m) = markdown defWithHighlight (fromStrict m) where

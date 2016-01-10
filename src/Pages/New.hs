@@ -4,15 +4,16 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
-module Pages.Home where
+module Pages.New where
 
 import API
 import HTMLRendering
-import Models
-import Models.SessionData
 import Servant.API
+import Text.Digestive.View
 import Text.Hamlet
 
-instance MimeRender HTML Homepage where
-    mimeRender _ (Homepage es mu) =
-        defaultLayout $ render $(hamletFile "static/html/home.hamlet")
+instance MimeRender HTML NewPage where
+    mimeRender _ (NewPage view _) = defaultLayout $ do
+        setTitle "New post"
+        let form = $(hamletFile "static/html/_form.hamlet")
+        render $(hamletFile "static/html/new.hamlet")

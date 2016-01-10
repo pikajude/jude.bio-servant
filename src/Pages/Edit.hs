@@ -7,11 +7,15 @@
 module Pages.Edit where
 
 import API
-import Data.ByteString.Lazy (ByteString)
+import Data.Monoid
 import HTMLRendering
 import Models
+import Servant.API
 import Text.Digestive.View
 import Text.Hamlet
 
-renderEdit :: Essay -> View String -> ByteString
-renderEdit e view = defaultLayout $ render $(hamletFile "static/html/edit.hamlet")
+instance MimeRender HTML EditPage where
+    mimeRender _ (EditPage e view _) = defaultLayout $ do
+        setTitle $ "Editing " <> unTitle (essayTitle e)
+        let form = $(hamletFile "static/html/_form.hamlet")
+        render $(hamletFile "static/html/edit.hamlet")

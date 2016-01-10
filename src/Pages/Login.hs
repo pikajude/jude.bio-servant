@@ -7,9 +7,9 @@
 module Pages.Login where
 
 import API
-import Data.ByteString.Lazy (ByteString)
 import HTMLRendering
+import Servant.API
 import Text.Hamlet
 
-renderLogin :: ByteString
-renderLogin = defaultLayout $ render $(hamletFile "static/html/login.hamlet")
+instance MimeRender HTML LoginPage where
+    mimeRender _ _ = defaultLayout $ render $(hamletFile "static/html/login.hamlet")

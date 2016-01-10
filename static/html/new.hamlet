@@ -1,0 +1,5 @@
+<article .bubble>
+  <h2 .form-title>Write something
+  <form role=form method=post action=@{newLink}>
+    <input type=hidden name=_method value=PUT>
+    ^{form}

@@ -20,8 +20,11 @@ class Serialize a => SessionData a where
 data User = User Text deriving Show
 data Message = Message Text
 
-pattern KUser = Proxy :: Proxy User
-pattern KMessage = Proxy :: Proxy Message
+pattern KUser :: Proxy User
+pattern KUser = Proxy
+
+pattern KMessage :: Proxy Message
+pattern KMessage = Proxy
 
 instance Serialize User where
     put (User t) = put (encodeUtf8 t)

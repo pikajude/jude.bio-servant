@@ -1,14 +1,15 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeOperators         #-}
 
-module API where
+module API (module API, module API.PageTypes) where
 
+import           API.PageTypes
 import           Control.Monad.Reader
-import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Except
 import           Data.Aeson
 import           Data.Text                  (Text)
 import           HTMLRendering
@@ -17,43 +18,41 @@ import qualified Network.HTTP.Types.Header  as HTTP
 import           Servant
 import           System.FilePath
 
-newtype Homepage = Homepage { unEssays :: [Essay] } deriving ToJSON
-newtype Single = Single { unSingle :: Essay }
-data LoginPage = LoginPage
-
-instance ToJSON Single where
-    toJSON (Single e) = toJSON e
-
 type AppM a = AppBare (Rendered a)
 
-type AppBare a = ReaderT AppState (EitherT ServantErr IO) a
+type AppBare a = ReaderT AppState (ExceptT ServantErr IO) a
 
 -----------------------------------------------------------
 -- Endpoint definition
 -----------------------------------------------------------
 
-type HomeE = Get '[JSON, HTML] (Rendered Homepage)
+type HomeE = Get '[JSON, HTML] Homepage
 
-type ReadE = "r" :> Capture "slug" EssaySlug :> Get '[JSON, HTML] (Rendered Single)
+type ReadE = "r" :> Capture "slug" EssaySlug :> Get '[JSON, HTML] Single
 
-type GetEditE = "e" :> Capture "slug" EssaySlug :> Get '[HTML] (Rendered Single)
-type PostEditE = "e" :> Capture "slug" EssaySlug :>
-    ReqBody '[JSON, FormUrlEncoded] PartialEssay
-        :> Patch '[JSON, HTML] (Rendered Single)
+type GetNewE = "n" :> Get '[HTML] NewPage
+type PutNewE = "n" :> ReqBody '[JSON, FormUrlEncoded] EssayNew
+    :> (Verb 'PUT 400 '[HTML] NewPage
+   :<|> PutNoContent '[JSON] ())
 
-type NewE = "n" :> ReqBody '[JSON] Essay :> Put '[HTML] (Rendered Single)
+type GetEditE = "e" :> Capture "slug" EssaySlug :> Get '[HTML] EditPage
+type PatchEditE = "e" :> Capture "slug" EssaySlug :>
+    ReqBody '[JSON, FormUrlEncoded] EssayUpdate
+        :> (Verb 'PATCH 400 '[HTML] EditPage
+       :<|> PatchNoContent '[JSON] ())
 
-type GetLoginE = "in" :> Get '[HTML] (Rendered LoginPage)
-type PostLoginE = "in" :> ReqBody '[FormUrlEncoded, JSON] LoginUser :> Post '[HTML] (Rendered ())
+type GetLoginE = "in" :> Get '[HTML] LoginPage
+type PostLoginE = "in" :> ReqBody '[FormUrlEncoded] LoginUser
+    :> Verb 'POST 400 '[HTML] LoginPage
 
-type LogoutE = "out" :> Get '[HTML] ()
+type LogoutE = "out" :> Get '[PlainText] LogoutPage
 
 type StaticE = "s" :> Raw
 
 type API = HomeE
       :<|> ReadE
-      :<|> (GetEditE :<|> PostEditE)
-      :<|> NewE
+      :<|> (GetNewE :<|> PutNewE)
+      :<|> (GetEditE :<|> PatchEditE)
       :<|> (GetLoginE :<|> PostLoginE)
       :<|> LogoutE
       :<|> StaticE
@@ -69,6 +68,8 @@ loginLink :: URI
 loginLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetLoginE)
 readLink :: EssaySlug -> URI
 readLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy ReadE)
+newLink :: URI
+newLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetNewE)
 editLink :: EssaySlug -> URI
 editLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetEditE)
 staticLink :: FilePath -> URI

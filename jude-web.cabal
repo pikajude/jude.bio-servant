@@ -11,6 +11,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:     JudeWeb
   other-modules:       API
+                       API.PageTypes
                        HTMLRendering
                        Models
                        Models.SessionData
@@ -18,6 +19,7 @@ library
                        Pages.Forms
                        Pages.Home
                        Pages.Login
+                       Pages.New
                        Pages.Single
                        StaticFiles
   build-depends:       base >= 4.7
@@ -30,7 +32,6 @@ library
                      , clientsession
                      , cookie
                      , digestive-functors
-                     , either
                      , file-embed
                      , filepath
                      , highlighter
@@ -44,6 +45,7 @@ library
                      , pwstore-fast
                      , safecopy
                      , servant
+                     , servant-docs
                      , servant-server
                      , shakespeare
                      , text

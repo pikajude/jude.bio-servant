@@ -19,29 +19,30 @@
 
 module Models where
 
-import Control.Monad.Reader
-import Control.Monad.State
-import Data.Acid
-import Data.Acid.Core       (MethodState)
-import Data.Aeson
-import Data.Aeson.TH
-import Data.ByteString      (ByteString)
-import Data.Char
-import Data.Data            hiding (Proxy)
-import Data.IxSet
-import Data.List
-import Data.Maybe
-import Data.Ord
-import Data.SafeCopy
-import Data.Text            (Text)
-import Data.Time
-import Models.OverHead
-import Network.Wai.Session
-import Prelude              hiding (div)
-import Servant              (FromFormUrlEncoded (..), FromText, ToFormUrlEncoded (..),
-                             ToText)
-import Text.Blaze           (ToMarkup)
-import Web.ClientSession    (Key)
+import           Control.Monad.Reader
+import           Control.Monad.State
+import           Data.Acid
+import           Data.Acid.Core       (MethodState)
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.ByteString      (ByteString)
+import           Data.Char
+import           Data.Data            hiding (Proxy)
+import           Data.IxSet
+import           Data.List
+import           Data.Maybe
+import           Data.Ord
+import           Data.SafeCopy
+import           Data.Text            (Text)
+import qualified Data.Text            as T
+import           Data.Time
+import           Models.OverHead
+import           Network.Wai.Session
+import           Prelude              hiding (div)
+import           Servant              (FromFormUrlEncoded (..), FromHttpApiData,
+                                       ToFormUrlEncoded (..), ToHttpApiData)
+import           Text.Blaze           (ToMarkup)
+import           Web.ClientSession    (Key)
 
 data AppState = AppState
               { appKey      :: Key
@@ -62,7 +63,7 @@ data Essay = Essay
 newtype EssayTitle = EssayTitle { unTitle :: Text }
                      deriving (HTML_INSTANCES)
 newtype EssaySlug = EssaySlug { unSlug :: Text }
-                    deriving (JSON_INSTANCES, ToText, FromText)
+                    deriving (JSON_INSTANCES, ToHttpApiData, FromHttpApiData)
 newtype EssayContent = EssayContent { unContent :: Text }
                        deriving (JSON_INSTANCES)
 newtype EssayCreatedAt = EssayCreatedAt { unCreatedAt :: UTCTime }
@@ -91,20 +92,53 @@ instance Indexable Essay where
     empty = ixSet [ ixFun indexEssay ]
         where indexEssay Essay{..} = [ essaySlug ]
 
-data PartialEssay = PartialEssay { peTitle :: Maybe Text, peContent :: Maybe Text }
+updateEssay :: Essay -> (Text, Text) -> Essay
+updateEssay e (newT, newC) = e { essayTitle = EssayTitle newT
+                               , essayContent = EssayContent newC
+                               }
+
+data EssayUpdate = EssayUpdate { euTitle :: Maybe Text, euContent :: Maybe Text }
                   deriving (INSTANCES)
 
-instance FromFormUrlEncoded PartialEssay where
-    fromFormUrlEncoded ps = Right $ PartialEssay
+instance FromFormUrlEncoded EssayUpdate where
+    fromFormUrlEncoded ps = Right $ EssayUpdate
         (lookup "essay.title" ps) (lookup "essay.content" ps)
 
-instance ToFormUrlEncoded PartialEssay where
-    toFormUrlEncoded PartialEssay{..} = catMaybes
-        [(,) "essay.title" <$> peTitle, (,) "essay.content" <$> peContent]
+instance ToFormUrlEncoded EssayUpdate where
+    toFormUrlEncoded EssayUpdate{..} = catMaybes
+        [(,) "essay.title" <$> euTitle, (,) "essay.content" <$> euContent]
 
 deriveJSON defaultOptions { fieldLabelModifier = overHead toLower . drop 2
                           , constructorTagModifier = map toLower
-                          } ''PartialEssay
+                          } ''EssayUpdate
+
+data EssayNew = EssayNew { enTitle :: Text, enContent :: Text }
+              deriving (INSTANCES)
+
+instance FromFormUrlEncoded EssayNew where
+    fromFormUrlEncoded ps = EssayNew
+        <$> lookupE "Missing title" "essay.title" ps
+        <*> lookupE "Missing content" "essay.content" ps
+        where lookupE t n s = maybe (Left t) Right (lookup n s)
+
+instance ToFormUrlEncoded EssayNew where
+    toFormUrlEncoded EssayNew{..} =
+        [("essay.title", enTitle), ("essay.content", enContent)]
+
+deriveJSON defaultOptions { fieldLabelModifier = overHead toLower . drop 2
+                          , constructorTagModifier = map toLower
+                          } ''EssayNew
+
+fromNew :: EssayNew -> IO Essay
+fromNew EssayNew{..} = do
+    t <- getCurrentTime
+    return $ Essay (EssayTitle enTitle) (EssaySlug $ mkSlug enTitle)
+        (EssayContent enContent) (EssayCreatedAt t)
+
+mkSlug :: Text -> Text
+mkSlug = T.foldr (\ e m -> if (T.take 1 m, e) == ("-", '-') then m else T.cons e m) mempty
+       . T.map (\ x -> if isAlphaNum x then x else '-')
+       . T.toLower
 
 -- | User
 data LoginUser = LoginUser { username :: Text, password :: Text } deriving Show
@@ -116,6 +150,10 @@ instance FromFormUrlEncoded LoginUser where
         <$> lookupE "Missing username" "username" ps
         <*> lookupE "Missing password" "password" ps
         where lookupE s k f = maybe (Left s) Right $ lookup k f
+
+instance ToFormUrlEncoded LoginUser where
+    toFormUrlEncoded LoginUser{..} =
+        [("username", username), ("password", password)]
 
 -- | Running
 runDB :: (MonadIO m, MonadReader AppState m, QueryEvent event, MethodState event ~ Database)
@@ -145,9 +183,13 @@ replaceSlug slug e = do
     Database essays <- get
     put $ Database $ updateIx slug e essays
 
-insert :: Essay -> Update Database ()
+insert :: Essay -> Update Database (Maybe String)
 insert e = do
     Database es <- get
-    put $ Database $ Data.IxSet.insert e es
+    case getOne (es @= essaySlug e) of
+        Nothing -> do
+            put $ Database $ Data.IxSet.insert e es
+            return Nothing
+        Just _ -> return $ Just "Slug collision"
 
 makeAcidic ''Database ['getAll, 'selectSlug, 'replaceSlug, 'Models.insert]
