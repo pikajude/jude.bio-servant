@@ -3,10 +3,13 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeOperators         #-}
 
 module API.Docs where
 
 import API
+import Combinators
 import Data.Proxy
 import Data.Void     (Void)
 import HTMLRendering (HTML)
@@ -58,11 +61,17 @@ instance ToSample Homepage where
         s <- toSamples Proxy
         return (fst s, Homepage [snd s] Nothing Nothing)
 
-instance ToCapture (Capture "slug" EssaySlug) where
-    toCapture _ = DocCapture "slug" "The URL slug of the essay to retrieve"
-
 instance MimeRender HTML Void where
     mimeRender _ _ = ""
 
 instance ToSample Void where
     toSamples _ = []
+
+instance HasDocs sub => HasDocs (WithEssay :> sub) where
+    docsFor Proxy = docsFor (Proxy :: Proxy (Capture "slug" EssaySlug :> sub))
+
+instance HasDocs sub => HasDocs (SessionVar a :> sub) where
+    docsFor Proxy = docsFor (Proxy :: Proxy sub)
+
+instance ToCapture (Capture "slug" EssaySlug) where
+    toCapture _ = DocCapture "slug" "The URL slug of the essay to retrieve"

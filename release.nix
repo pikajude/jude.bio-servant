@@ -1,7 +1,10 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import <nixpkgs> {}, compiler ? "default" }:
 
 let
-  build = pkgs.haskellPackages.callPackage ./default.nix {};
+  haskellPackages = if compiler == "default"
+    then pkgs.haskellPackages
+    else pkgs.haskell.packages.${compiler};
+  build = haskellPackages.callPackage ./default.nix {};
   bowerPkgs = pkgs.callPackage ./bower.nix {};
 
   tarball = with pkgs; releaseTools.sourceTarball rec {

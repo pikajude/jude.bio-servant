@@ -57,31 +57,3 @@ clear :: (MonadReader AppState m, MonadIO m, SessionData a)
 clear k = do
     Just (_, put') <- asks appSession
     liftIO $ put' (sessionKey k) (encode ())
-
-{-
-
--- | Session data
-newtype UserS = UserS Text deriving (S.Serialize, Show)
-newtype Message = Message Text deriving (S.Serialize, Show)
-
--- | Orphans
-instance S.Serialize Text where
-    put = S.put . encodeUtf8
-    get = fmap decodeUtf8 S.get
-
-set :: (S.Serialize a, MonadReader AppState m, MonadIO m)
-    => ByteString -> a -> m ()
-set k s = do
-    Just (_, put') <- asks appSession
-    liftIO $ put' k $ S.encode s
-
-fetch :: (S.Serialize a, MonadReader AppState m, MonadIO m)
-      => ByteString -> m (Maybe a)
-fetch k = do
-    Just (fetch', _) <- asks appSession
-    liftM (>>= em . S.decode) $ liftIO (fetch' k)
-    where
-        em (Left _) = Nothing
-        em (Right x) = Just x
-
--}

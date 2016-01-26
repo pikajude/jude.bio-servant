@@ -3,6 +3,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE TypeOperators             #-}
+{-# LANGUAGE ViewPatterns              #-}
 
 module JudeWeb where
 
@@ -55,13 +56,6 @@ server appState = (enter' serveHome
     where
         enter' = enter (runReaderTNat appState)
 
-requireAuth :: AppBare User
-requireAuth = do
-    mu <- fetch KUser
-    case mu of
-        Nothing -> lift $ throwE err401
-        Just u -> return u
-
 redirectTo :: URI -> AppBare a
 redirectTo uri = lift $ throwE (err301 { errHeaders =
     [ ("Location", "/" <> fromString (show uri)) ] })
@@ -77,42 +71,29 @@ serveHome = do
     es <- runDB GetAll
     return $ Homepage es mu mm
 
-serveSingle :: EssaySlug -> AppBare Single
-serveSingle sl = do
+serveSingle :: Essay -> AppBare Single
+serveSingle e = do
     mu <- fetch KUser
-    e <- runDB $ SelectSlug sl
-    case e of
-        Nothing -> lift $ throwE err404
-        Just x -> return $ Single x mu
+    return $ Single e mu
 
 serveEdit :: ToFormUrlEncoded a
-          => (EssaySlug -> AppBare EditPage)
-        :<|> (EssaySlug -> a -> AppBare EditPage :<|> AppBare ())
+          => (User -> Essay -> AppBare EditPage)
+        :<|> (User -> Essay -> a -> AppBare EditPage :<|> AppBare ())
 serveEdit = serveEditGet :<|> serveEditPatch where
-    serveEditGet sl = do
-        _ <- requireAuth
-        e <- runDB $ SelectSlug sl
-        case e of
-            Nothing -> lift $ throwE err404
-            Just ese -> do
-                fg <- getForm "essay" (essayForm $ Just ese)
-                return $ EditPage ese fg
+    serveEditGet _ ese = do
+        fg <- getForm "essay" (essayForm $ Just ese)
+        return $ EditPage ese fg
 
 serveEditPatch :: ToFormUrlEncoded r
-               => EssaySlug -> r -> AppBare EditPage :<|> AppBare ()
-serveEditPatch sl part = sHtml :<|> sJson where
+               => User -> Essay -> r -> AppBare EditPage :<|> AppBare ()
+serveEditPatch _ ese part = sHtml :<|> sJson where
     common = do
-        _ <- requireAuth
-        e <- runDB $ SelectSlug sl
-        case e of
-            Nothing -> lift $ throwE err404
-            Just ese -> do
-                (_v, _me) <- postForm "essay" (essayForm $ Just ese) (efEnv part)
-                case _me of
-                    Nothing -> return $ Left $ EditPage ese _v
-                    Just newE -> do
-                        execDB $ ReplaceSlug sl newE
-                        return $ Right newE
+        (_v, _me) <- postForm "essay" (essayForm $ Just ese) (efEnv part)
+        case _me of
+            Nothing -> return $ Left $ EditPage ese _v
+            Just newE -> do
+                execDB $ ReplaceSlug (essaySlug ese) newE
+                return $ Right newE
     sHtml = do
         mep <- common
         case mep of
@@ -124,15 +105,15 @@ serveEditPatch sl part = sHtml :<|> sJson where
             Left ep -> lift $ throwE (err400 { errBody = encode ep })
             Right _ -> return ()
 
-serveNew :: AppBare NewPage :<|> (EssayNew -> (AppBare NewPage :<|> AppBare ()))
+serveNew :: (User -> AppBare NewPage)
+       :<|> (User -> EssayNew -> (AppBare NewPage :<|> AppBare ()))
 serveNew = serveNewGet :<|> serveNewPut where
-    serveNewGet = do
-        mu <- requireAuth
+    serveNewGet mu = do
         fg <- getForm "essay" (essayForm Nothing)
         return $ NewPage fg mu
 
-serveNewPut :: EssayNew -> AppBare NewPage :<|> AppBare ()
-serveNewPut part = serveNewHtml :<|> serveNewJson where
+serveNewPut :: User -> EssayNew -> AppBare NewPage :<|> AppBare ()
+serveNewPut mu part = serveNewHtml :<|> serveNewJson where
     serveNewHtml = do
         res <- inserter
         case res of
@@ -146,23 +127,21 @@ serveNewPut part = serveNewHtml :<|> serveNewJson where
             Right (_, Just s) -> error s
             Right (_, Nothing) -> return ()
     inserter = do
-        mu <- requireAuth
         (_v, _me) <- postForm "essay" (essayForm Nothing) (efEnv part)
         case _me of
             Nothing -> return $ Left $ NewPage _v mu
             Just essay -> Right . (,) essay <$> execDB (Insert essay)
 
-serveDelete :: EssaySlug -> (AppBare Void :<|> AppBare ())
-serveDelete slug = (do worked <- common
-                       if worked
-                           then set KMessage $ Message "Successfully deleted."
-                           else set KMessage $ Message "Essay not found."
-                       redirectTo homeLink)
-              :<|> (do worked <- common
-                       unless worked $ lift $ throwE err404)
-    where common = do
-            _ <- requireAuth
-            execDB $ Delete slug
+serveDelete :: User -> Essay -> (AppBare Void :<|> AppBare ())
+serveDelete _ (essaySlug -> slug) =
+        (do worked <- common
+            if worked
+                then set KMessage $ Message "Successfully deleted."
+                else set KMessage $ Message "Essay not found."
+            redirectTo homeLink)
+   :<|> (do worked <- common
+            unless worked $ lift $ throwE err404)
+    where common = execDB $ Delete slug
 
 serveLoginGet :: AppBare LoginPage
 serveLoginGet = do
@@ -186,9 +165,8 @@ serveLoginPost user = do
                     set KUser $ User (username u)
                     redirectTo homeLink
 
-serveLogout :: AppBare LogoutPage
-serveLogout = do
-    _ <- requireAuth
+serveLogout :: User -> AppBare LogoutPage
+serveLogout _ = do
     clear KUser
     redirectTo homeLink
 
@@ -197,8 +175,10 @@ serveApp = do
     database <- openLocalStateFrom "db" (Database empty)
     k <- getDefaultKey
     vk <- V.newKey
+    let cfg = database :. vk :. EmptyConfig
     return $ methodOverridePost
            $ withSession (clientsessionStore k) "_SESSION" (def { setCookiePath = Just "/" }) vk
            $ \ req -> serve (Proxy :: Proxy APIWithDocs)
+                 cfg
                  (server (AppState k database (V.lookup vk $ vault req)))
                  req

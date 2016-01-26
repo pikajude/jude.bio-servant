@@ -3,11 +3,14 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
 module API (module API, module API.PageTypes) where
 
 import           API.PageTypes
+import           Combinators
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Except
 import           Data.Aeson
@@ -29,20 +32,20 @@ type AppBare a = ReaderT AppState (ExceptT ServantErr IO) a
 
 type HomeE = Get '[JSON, HTML] Homepage
 
-type ReadE = "r" :> Capture "slug" EssaySlug :> Get '[JSON, HTML] Single
+type ReadE = "r" :> WithEssay :> Get '[JSON, HTML] Single
 
-type GetNewE = "n" :> Get '[HTML] NewPage
-type PutNewE = "n" :> ReqBody '[JSON, FormUrlEncoded] EssayNew
+type GetNewE = "n" :> WithUser :> Get '[HTML] NewPage
+type PutNewE = "n" :> WithUser :> ReqBody '[JSON, FormUrlEncoded] EssayNew
     :> (Verb 'PUT 400 '[HTML] NewPage
    :<|> PutNoContent '[JSON] ())
 
-type GetEditE = "e" :> Capture "slug" EssaySlug :> Get '[HTML] EditPage
-type PatchEditE = "e" :> Capture "slug" EssaySlug :>
+type GetEditE = "e" :> WithUser :> WithEssay :> Get '[HTML] EditPage
+type PatchEditE = "e" :> WithUser :> WithEssay :>
     ReqBody '[JSON, FormUrlEncoded] EssayUpdate
         :> (Verb 'PATCH 400 '[HTML] EditPage
        :<|> PatchNoContent '[JSON] ())
 
-type DeleteE = "d" :> Capture "slug" EssaySlug
+type DeleteE = "d" :> WithUser :> WithEssay
     :> (DeleteNoContent '[HTML] Void
    :<|> DeleteNoContent '[JSON] ())
 
@@ -50,7 +53,7 @@ type GetLoginE = "in" :> Get '[HTML] LoginPage
 type PostLoginE = "in" :> ReqBody '[FormUrlEncoded] LoginUser
     :> Verb 'POST 400 '[HTML] LoginPage
 
-type LogoutE = "out" :> Get '[PlainText] LogoutPage
+type LogoutE = "out" :> WithUser :> Get '[PlainText] LogoutPage
 
 type StaticE = "s" :> Raw
 
@@ -79,7 +82,7 @@ newLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetNewE)
 editLink :: EssaySlug -> URI
 editLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy GetEditE)
 deleteLink :: EssaySlug -> URI
-deleteLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy ("d" :> Capture "slug" EssaySlug :> DeleteNoContent '[HTML] Void))
+deleteLink = safeLink (Proxy :: Proxy API) (Proxy :: Proxy ("d" :> WithUser :> WithEssay :> DeleteNoContent '[HTML] Void))
 staticLink :: FilePath -> URI
 staticLink t = u { uriPath = uriPath u </> t } where
     u = safeLink (Proxy :: Proxy API) (Proxy :: Proxy StaticE)
