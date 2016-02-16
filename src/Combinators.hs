@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -71,5 +72,9 @@ instance (HasConfigEntry cfg (V.Key MySession), HasServer sub cfg, SessionData a
               em (Right x) = Just x
 
 instance HasLink sub => HasLink (SessionVar a :> sub) where
+#if __GLASGOW_HASKELL__ >= 800
     type MkLink (SessionVar _ :> sub) = MkLink sub
+#else
+    type MkLink (SessionVar a :> sub) = MkLink sub
+#endif
     toLink Proxy = toLink (Proxy :: Proxy sub)

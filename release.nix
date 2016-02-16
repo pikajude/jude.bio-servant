@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {}, compiler ? "default" }:
+{ pkgs ? import <nixpkgs> {}, compiler ? "default", src ? { outPath = ./.; } }:
 
 let
   haskellPackages = if compiler == "default"
@@ -10,7 +10,7 @@ let
   tarball = with pkgs; releaseTools.sourceTarball rec {
     name = build.pname;
     version = build.version;
-    src = { outPath = ./.; };
+    inherit src;
     buildInputs = [ git jq ];
 
     postUnpack = ''
@@ -30,16 +30,19 @@ let
 
     distPhase = ''
       runHook preDist
+      ls -lah
+      exit 1
       tar cfj tarball.tar.bz2 * --transform 's,^,${name}/,'
       mkdir -p $out/tarballs
       cp *.tar.* $out/tarballs
     '';
   };
 
-in pkgs.haskell.lib.overrideCabal build (drv: {
+in pkgs.haskell.lib.addBuildTools (pkgs.haskell.lib.overrideCabal build (drv: {
   configureFlags = [ "-fopt" ];
   doHaddock = false;
   enableSharedExecutables = false;
   enableSharedLibraries = false;
+  isLibrary = false;
   src = "${tarball}/tarballs/*.tar.bz2";
-})
+})) (pkgs.lib.optional (pkgs.lib.versionOlder haskellPackages.ghc.version "8") haskellPackages.Cabal_1_22_7_0)

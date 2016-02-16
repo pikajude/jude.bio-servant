@@ -15,7 +15,7 @@ Flag opt
 
 library
   exposed-modules:     JudeWeb
-  other-modules:       API
+                       API
                        API.Docs
                        API.PageTypes
                        Combinators
@@ -84,3 +84,49 @@ executable jude-web
     ghc-options:       -Wall -Werror -O2 -rtsopts -with-rtsopts=-N
   else
     ghc-options:       -Wall -O0
+
+test-suite test
+  build-depends:       base
+                     , acid-state
+                     , aeson
+                     , blaze-html
+                     , blaze-markup
+                     , bytestring
+                     , cereal
+                     , clientsession
+                     , cookie
+                     , digestive-functors
+                     , digestive-functors-blaze
+                     , file-embed
+                     , filepath
+                     , highlighter
+                     , http-media
+                     , http-types
+                     , ixset
+                     , markdown
+                     , mtl
+                     , network-uri
+                     , pcre-light
+                     , pwstore-fast
+                     , safecopy
+                     , servant
+                     , servant-docs
+                     , servant-server
+                     , shakespeare
+                     , text
+                     , template-haskell
+                     , time
+                     , transformers
+                     , utf8-string
+                     , vault
+                     , wai
+                     , wai-app-static
+                     , wai-extra
+                     , wai-session
+                     , wai-session-clientsession
+                     , hspec, hspec-wai, hspec-wai-json
+  type:                exitcode-stdio-1.0
+  main-is:             Spec.hs
+  hs-source-dirs:      test, src
+  default-language:    Haskell2010
+  ghc-options:         -threaded
