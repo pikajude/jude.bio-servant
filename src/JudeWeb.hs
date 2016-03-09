@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                       #-}
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -175,10 +176,10 @@ serveApp = do
     database <- openLocalStateFrom "db" (Database empty)
     k <- getDefaultKey
     vk <- V.newKey
-    let cfg = database :. vk :. EmptyConfig
+    let cfg = database :. vk :. EmptyContext
     return $ methodOverridePost
            $ withSession (clientsessionStore k) "_SESSION" (def { setCookiePath = Just "/" }) vk
-           $ \ req -> serve (Proxy :: Proxy APIWithDocs)
+           $ \ req -> serveWithContext (Proxy :: Proxy APIWithDocs)
                  cfg
                  (server (AppState k database (V.lookup vk $ vault req)))
                  req
