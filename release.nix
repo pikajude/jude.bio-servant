@@ -36,11 +36,13 @@ let
     '';
   };
 
-in pkgs.haskell.lib.overrideCabal build (drv: {
-  configureFlags = [ "-fopt" ];
-  doHaddock = false;
-  enableSharedExecutables = false;
-  enableSharedLibraries = false;
-  isLibrary = false;
-  src = "${tarball}/tarballs/*.tar.bz2";
-})
+in {
+  job = pkgs.haskell.lib.overrideCabal build (drv: {
+    configureFlags = [ "-fopt" ];
+    doHaddock = false;
+    enableSharedExecutables = false;
+    enableSharedLibraries = false;
+    isLibrary = false;
+    src = "${tarball}/tarballs/*.tar.bz2";
+  });
+}
