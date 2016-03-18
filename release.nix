@@ -6,8 +6,8 @@
 
 { build = let inherit ((import <nixpkgs> {}).lib) genAttrs; in
 
-genAttrs supportedPlatforms (system:
-  genAttrs supportedCompilers (compiler:
+genAttrs supportedCompilers (compiler:
+  genAttrs supportedPlatforms (system:
     with import <nixpkgs> { inherit system; };
 
     let
