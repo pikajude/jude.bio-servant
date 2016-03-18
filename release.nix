@@ -1,6 +1,6 @@
 { jude-web ? { outPath = ./.; }
 
-, supportedCompilers ? [ "default" "ghcHEAD" ]
+, supportedCompilers ? [ "default" "ghc801" ]
 , supportedPlatforms ? [ "x86_64-linux" "i686-linux" ]
 }:
 
